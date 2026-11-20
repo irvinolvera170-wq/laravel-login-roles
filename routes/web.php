@@ -35,9 +35,28 @@ Route::middleware('auth')->group(function () {
         ->name('home');
 });
 
-Route::middleware(['auth', 'solo.admin', 'admin.codigo'])->group(function () {
-    Route::get('/usuarios', [UsuarioController::class, 'index'])->name('usuarios.index');
-    Route::get('/usuarios/crear', [UsuarioController::class, 'create'])->name('usuarios.create');
-    Route::post('/usuarios', [UsuarioController::class, 'store'])->name('usuarios.store');
-    Route::patch('/usuarios/{user}/rol', [UsuarioController::class, 'updateRole'])->name('usuarios.rol');
-});
+// Admin y empleado: listar, ver, crear y editar
+Route::middleware(['auth', 'role:admin,empleado', 'admin.codigo'])
+    ->prefix('usuarios')->name('usuarios.')
+    ->where(['usuario' => '[0-9]+'])
+    ->group(function () {
+        Route::get('/', [UsuarioController::class, 'index'])->name('index');
+        Route::get('/crear', [UsuarioController::class, 'create'])->name('create');
+        Route::post('/', [UsuarioController::class, 'store'])->name('store');
+        Route::get('/{usuario}', [UsuarioController::class, 'show'])->name('show');
+        Route::get('/{usuario}/editar', [UsuarioController::class, 'edit'])->name('edit');
+        Route::put('/{usuario}', [UsuarioController::class, 'update'])->name('update');
+    });
+
+// Solo admin: eliminar, papelera y restaurar
+Route::middleware(['auth', 'role:admin', 'admin.codigo'])
+    ->prefix('usuarios')->name('usuarios.')
+    ->where(['usuario' => '[0-9]+'])
+    ->group(function () {
+        Route::get('/papelera', [UsuarioController::class, 'papelera'])->name('papelera');
+        Route::delete('/{usuario}', [UsuarioController::class, 'destroy'])->name('destroy');
+        Route::patch('/{usuario}/restaurar', [UsuarioController::class, 'restore'])
+            ->withTrashed()->name('restore');
+        Route::delete('/{usuario}/permanente', [UsuarioController::class, 'forceDelete'])
+            ->withTrashed()->name('forceDelete');
+    });

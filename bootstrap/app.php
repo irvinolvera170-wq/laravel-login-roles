@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
     $middleware->alias([
         'admin.codigo' => \App\Http\Middleware\AdminCodigoVerificado::class,
          'solo.admin' => \App\Http\Middleware\SoloAdmin::class,
+         'role'         => \App\Http\Middleware\RoleMiddleware::class,
     ]);
 })
     ->withExceptions(function (Exceptions $exceptions): void {

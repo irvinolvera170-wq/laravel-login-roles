@@ -2,15 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UsuarioRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class UsuarioController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $usuarios = User::orderBy('name')->get();
-        return view('usuarios.index', compact('usuarios'));
+        $usuarios = User::orderBy('name')->paginate(10);
+        $enPapelera = $request->user()->esAdmin() ? User::onlyTrashed()->count() : 0;
+
+        return view('usuarios.index', compact('usuarios', 'enPapelera'));
     }
 
     public function create()
@@ -18,50 +22,99 @@ class UsuarioController extends Controller
         return view('usuarios.create');
     }
 
-    public function store(Request $request)
-{
-    $datos = $request->validate([
-        'name' => 'required|string|max:255',
-        'email' => 'required|email|max:255|unique:users,email',
-        'password' => 'required|min:8|confirmed',
-        'password_confirmation' => 'required',
-        'role' => 'required|in:admin,empleado',
-    ], [
-        'name.required' => 'Escribe el nombre del usuario.',
-        'email.required' => 'Escribe el correo del usuario.',
-        'email.email' => 'Escribe un correo válido, por ejemplo nombre@correo.com.',
-        'email.unique' => 'Este correo ya está registrado.',
-        'password.required' => 'Escribe una contraseña.',
-        'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
-        'password.confirmed' => 'Las contraseñas no coinciden.',
-        'password_confirmation.required' => 'Confirma la contraseña.',
-        'role.required' => 'Elige un rol.',
-        'role.in' => 'El rol debe ser Admin o Empleado.',
-    ]);
-
-    User::create([
-        'name' => $datos['name'],
-        'email' => $datos['email'],
-        'password' => $datos['password'],
-        'role' => $datos['role'],
-    ]);
-
-    return redirect()->route('usuarios.create')
-        ->with('status', 'Usuario creado correctamente.');
-}
-
-   
-
-    public function updateRole(Request $request, User $user)
+    public function store(UsuarioRequest $request)
     {
-        $request->validate(['role' => 'required|in:admin,empleado']);
+        $datos = $request->validated();
+        // Un empleado nunca puede elegir el rol: siempre se crea como empleado
+        $datos['role'] = $request->user()->esAdmin() ? $datos['role'] : 'empleado';
 
-        if ($user->id === $request->user()->id) {
-            return back()->withErrors(['role' => 'No puedes cambiar tu propio rol.']);
+        User::create($datos);
+
+        return redirect()->route('usuarios.index')
+            ->with('status', 'Usuario creado correctamente.');
+    }
+
+    public function show(User $usuario)
+    {
+        return view('usuarios.show', compact('usuario'));
+    }
+
+    public function edit(Request $request, User $usuario)
+    {
+        $this->autorizarEdicion($request, $usuario);
+
+        return view('usuarios.edit', compact('usuario'));
+    }
+
+    public function update(UsuarioRequest $request, User $usuario)
+    {
+        $this->autorizarEdicion($request, $usuario);
+
+        $datos = $request->validated();
+
+        if (empty($datos['password'])) {
+            unset($datos['password']);   // contraseña en blanco = no cambiarla
         }
 
-        $user->update(['role' => $request->role]);
+        // Solo un admin cambia roles, y nunca el suyo propio
+        if (!$request->user()->esAdmin() || $usuario->is($request->user())) {
+            unset($datos['role']);
+        }
 
-        return back()->with('status', "Rol de {$user->name} actualizado a {$request->role}.");
+        $usuario->update($datos);
+
+        return redirect()->route('usuarios.index')
+            ->with('status', 'Usuario actualizado correctamente.');
+    }
+
+    public function papelera()
+    {
+        $usuarios = User::onlyTrashed()->orderByDesc('deleted_at')->paginate(10);
+
+        return view('usuarios.papelera', compact('usuarios'));
+    }
+
+    // Eliminación lógica (Soft Delete)
+    public function destroy(Request $request, User $usuario)
+    {
+        if ($usuario->is($request->user())) {
+            return back()->withErrors(['usuario' => 'No puedes eliminar tu propia cuenta.']);
+        }
+
+        $usuario->delete();
+        DB::table('sessions')->where('user_id', $usuario->id)->delete();
+
+        return redirect()->route('usuarios.index')
+            ->with('status', "{$usuario->name} fue deshabilitado. Puedes restaurarlo desde la papelera.");
+    }
+
+    public function restore(User $usuario)
+    {
+        $usuario->restore();
+
+        return redirect()->route('usuarios.papelera')
+            ->with('status', "{$usuario->name} fue restaurado.");
+    }
+
+    // Eliminación permanente (Delete)
+    public function forceDelete(Request $request, User $usuario)
+    {
+        if ($usuario->is($request->user())) {
+            return back()->withErrors(['usuario' => 'No puedes eliminar tu propia cuenta.']);
+        }
+
+        DB::table('sessions')->where('user_id', $usuario->id)->delete();
+        $usuario->forceDelete();
+
+        return back()->with('status', "{$usuario->name} fue eliminado permanentemente.");
+    }
+
+    private function autorizarEdicion(Request $request, User $usuario): void
+    {
+        abort_if(
+            !$request->user()->esAdmin() && $usuario->esAdmin(),
+            403,
+            'Un empleado no puede modificar cuentas de administrador.'
+        );
     }
 }

@@ -24,26 +24,30 @@
     </div>
 
     @if (auth()->user()->esAdmin())
-        <div class="row g-3">
-            <div class="col-md-6">
-                <div class="card shadow-sm h-100">
-                    <div class="card-body">
-                        <h5>Crear usuario</h5>
-                        <p class="text-muted">Registra un nuevo empleado o administrador.</p>
-                        <a href="{{ route('usuarios.create') }}" class="btn btn-primary">+ Crear usuario</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card shadow-sm h-100">
-                    <div class="card-body">
-                        <h5>Usuarios y roles</h5>
-                        <p class="text-muted">Mira la lista y cambia roles.</p>
-                        <a href="{{ route('usuarios.index') }}" class="btn btn-outline-primary">Ver usuarios</a>
-                    </div>
+            <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5>Usuarios</h5>
+                    <p class="text-muted">Consulta, registra y actualiza usuarios.</p>
+                    <a href="{{ route('usuarios.index') }}" class="btn btn-primary">Ver usuarios</a>
+                    <a href="{{ route('usuarios.create') }}" class="btn btn-outline-primary">+ Nuevo</a>
                 </div>
             </div>
         </div>
+
+        @if (auth()->user()->esAdmin())
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h5>Papelera</h5>
+                        <p class="text-muted">Restaura o elimina definitivamente usuarios deshabilitados.</p>
+                        <a href="{{ route('usuarios.papelera') }}" class="btn btn-outline-warning">Abrir papelera</a>
+                    </div>
+                </div>
+            </div>
+        @endif
+    </div>
     @endif
 </div>
 @endsection
