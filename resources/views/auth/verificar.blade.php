@@ -73,5 +73,10 @@
 
     const intervalo = setInterval(actualizar, 1000);
     actualizar();
+    // Si el navegador restaura esta pantalla desde su caché al dar "atrás", se recarga
+    // y el servidor responde 404 porque el admin ya verificó
+    window.addEventListener('pageshow', function (e) {
+        if (e.persisted) location.reload();
+    });
 </script>
 @endsection

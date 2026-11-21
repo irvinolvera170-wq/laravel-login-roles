@@ -12,7 +12,7 @@ class AdminCodigoVerificado
         $user = $request->user();
 
         if ($user && $user->esAdmin() && !session('codigo_verificado')) {
-            return redirect()->route('codigo.form');
+            return redirect($user->urlVerificacion());
         }
 
         return $next($request);

@@ -13,6 +13,7 @@ use App\Mail\CodigoVerificacion;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\URL;
 
 #[Fillable(['name', 'email', 'password', 'role', 'codigo', 'codigo_expira_at'])]
 #[Hidden(['password', 'remember_token'])]
@@ -50,4 +51,8 @@ class User extends Authenticatable
 
        Mail::to($this->email)->send(new CodigoVerificacion($codigo));
    }
+   public function urlVerificacion(): string
+{
+    return URL::temporarySignedRoute('codigo.form', now()->addMinutes(5));
+}
 }

@@ -22,13 +22,22 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    Route::get('/verificar-codigo', [CodigoController::class, 'showForm'])->name('codigo.form');
-    Route::post('/verificar-codigo', [CodigoController::class, 'verificar'])
+    // Verificación del admin: solo se entra con una URL firmada y temporal
+    Route::middleware(['auth'])->prefix('verificacion')->group(function () {
+    Route::get('/codigo', [CodigoController::class, 'showForm'])
+        ->middleware('signed')
+        ->name('codigo.form');
+
+    Route::post('/codigo', [CodigoController::class, 'verificar'])
         ->middleware('throttle:5,1')
         ->name('codigo.verificar');
-        Route::post('/reenviar-codigo', [CodigoController::class, 'reenviar'])
-    ->middleware('throttle:3,1')
-    ->name('codigo.reenviar');
+
+    Route::post('/codigo/reenviar', [CodigoController::class, 'reenviar'])
+        ->middleware('throttle:3,1')
+        ->name('codigo.reenviar');
+});
+
+   
 
     Route::get('/home', [HomeController::class, 'index'])
         ->middleware('admin.codigo')

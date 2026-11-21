@@ -28,16 +28,19 @@ class AuthController extends Controller
             ->withErrors(['email' => 'El correo o la contraseña son incorrectos.'])
             ->onlyInput('email');
     }
-
     $request->session()->regenerate();
+    $request->session()->forget('codigo_verificado');
     $user = Auth::user();
 
     if ($user->esAdmin()) {
         $user->enviarCodigo();
-        return redirect()->route('codigo.form');
+        return redirect($user->urlVerificacion());
     }
 
     return redirect()->route('home');
+
+
+    
 }
 
     public function logout(Request $request)
