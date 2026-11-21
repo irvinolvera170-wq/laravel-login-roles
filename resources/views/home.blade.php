@@ -23,8 +23,8 @@
         </div>
     </div>
 
-    @if (auth()->user()->esAdmin())
-            <div class="row g-3">
+    {{-- Visible para admin y empleado --}}
+    <div class="row g-3">
         <div class="col-md-6">
             <div class="card shadow-sm h-100">
                 <div class="card-body">
@@ -36,6 +36,7 @@
             </div>
         </div>
 
+        {{-- Solo administrador --}}
         @if (auth()->user()->esAdmin())
             <div class="col-md-6">
                 <div class="card shadow-sm h-100">
@@ -48,6 +49,5 @@
             </div>
         @endif
     </div>
-    @endif
 </div>
 @endsection
